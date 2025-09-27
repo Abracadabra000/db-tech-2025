@@ -1,0 +1,97 @@
+services:
+  postgres_west:
+    image: postgres:16
+    container_name: gdt_postgres_west
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: branch_west
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d branch_west"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  postgres_east:
+    image: postgres:16
+    container_name: gdt_postgres_east
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: branch_east
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d branch_east"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  flyway_west:
+    image: flyway/flyway:10
+    container_name: gdt_flyway_west
+    command: -connectRetries=60 -url=jdbc:postgresql://postgres_west:5432/branch_west -user=app -password=app -locations=filesystem:/flyway/sql migrate
+    volumes:
+      - ./flyway/sql:/flyway/sql:ro
+    depends_on:
+      postgres_west:
+        condition: service_healthy
+    restart: on-failure
+
+  flyway_east:
+    image: flyway/flyway:10
+    container_name: gdt_flyway_east
+    command: -connectRetries=60 -url=jdbc:postgresql://postgres_east:5432/branch_east -user=app -password=app -locations=filesystem:/flyway/sql migrate
+    volumes:
+      - ./flyway/sql:/flyway/sql:ro
+    depends_on:
+      postgres_east:
+        condition: service_healthy
+    restart: on-failure
+
+  app_west:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: gdt_app_west
+    environment:
+      DB_HOST: postgres_west
+      DB_PORT: "5432"
+      DB_USER: app
+      DB_PASSWORD: app
+      DB_NAME: branch_west
+      SEED_COUNT: 10
+    volumes:
+      - ./app:/app
+    working_dir: /app
+    depends_on:
+      flyway_west:
+        condition: service_completed_successfully
+    restart: on-failure
+
+  app_east:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: gdt_app_east
+    environment:
+      DB_HOST: postgres_east
+      DB_PORT: "5432"
+      DB_USER: app
+      DB_PASSWORD: app
+      DB_NAME: branch_east
+      SEED_COUNT: 10
+    volumes:
+      - ./app:/app
+    working_dir: /app
+    depends_on:
+      flyway_east:
+        condition: service_completed_successfully
+    restart: on-failure
+
+networks:
+  default:
+    name: generated_db_tech_net
+
