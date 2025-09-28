@@ -1,0 +1,4 @@
+psycopg[binary,pool]==3.2.1
+faker==25.9.1
+rich==13.8.0
+

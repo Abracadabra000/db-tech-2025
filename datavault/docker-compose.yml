@@ -1,0 +1,49 @@
+services:
+  dw_postgres:
+    image: postgres:16
+    container_name: dw_postgres
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: dw
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d dw"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  dw_flyway:
+    image: flyway/flyway:10
+    container_name: dw_flyway
+    command: -connectRetries=60 -url=jdbc:postgresql://dw_postgres:5432/dw -user=app -password=app -locations=filesystem:/flyway/sql migrate
+    volumes:
+      - ./flyway/sql:/flyway/sql:ro
+    depends_on:
+      dw_postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  dw_app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: dw_app
+    environment:
+      DB_HOST: dw_postgres
+      DB_PORT: "5432"
+      DB_USER: app
+      DB_PASSWORD: app
+      DB_NAME: dw
+      SEED_COUNT: 25
+    working_dir: /app
+    depends_on:
+      dw_flyway:
+        condition: service_completed_successfully
+    restart: on-failure
+
+networks:
+  default:
+    name: datawarehouse_net
+
