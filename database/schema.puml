@@ -1,0 +1,66 @@
+@startuml
+hide methods
+hide stereotypes
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+}
+
+class customer {
+  +id: serial PK
+  +name: text
+  +rowguid: uuid
+  +modified_date: timestamptz
+}
+
+class category {
+  +id: serial PK
+  +name: text
+  +rowguid: uuid
+  +modified_date: timestamptz
+}
+
+class product {
+  +id: serial PK
+  +name: text
+  +catalog_price: float
+  +rowguid: uuid
+  +modified_date: timestamptz
+}
+
+class product_category {
+  +id: serial PK
+  +product_id: int FK -> product.id
+  +category_id: int FK -> category.id
+  +rowguid: uuid
+  +modified_date: timestamptz
+  <<unique (product_id, category_id)>>
+}
+
+class deal {
+  +id: serial PK
+  +customer_id: int FK -> customer.id
+  +deal_date: timestamptz
+  +total_amount: float
+  +rowguid: uuid
+  +modified_date: timestamptz
+}
+
+class deal_item {
+  +id: serial PK
+  +deal_id: int FK -> deal.id
+  +product_id: int FK -> product.id
+  +quantity: int
+  +price: float
+  +rowguid: uuid
+  +modified_date: timestamptz
+}
+
+customer ||--o{ deal
+deal ||--o{ deal_item
+product ||--o{ product_category
+category ||--o{ product_category
+product ||--o{ deal_item
+
+@enduml
+

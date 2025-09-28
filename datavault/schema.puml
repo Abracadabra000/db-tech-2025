@@ -1,0 +1,64 @@
+@startuml
+hide methods
+hide stereotypes
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+}
+
+class dim_customer {
+  +customer_key: serial PK
+  +customer_name: text
+}
+
+class dim_product {
+  +product_key: serial PK
+  +product_name: text
+  +catalog_price: float
+}
+
+class dim_product_category {
+  +product_category_key: serial PK
+  +product_category_name: text
+}
+
+class dim_product_category_link {
+  +product_category_link_key: serial PK
+  +product_key: bigint FK -> dim_product.product_key
+  +product_category_key: bigint FK -> dim_product_category.product_category_key
+}
+
+class dim_date {
+  +date_key: bigserial PK
+  +year: int
+  +month: int
+  +day: int
+  +hour: int
+  +minute: int
+  +second: int
+}
+
+class dim_deal_item {
+  +deal_item_key: bigserial PK
+  +deal_key: bigint
+  +product_key: bigint
+  +quantity: int
+  +total_price: float
+}
+
+class deal_fact {
+  +deal_key: bigserial PK
+  +customer_key: bigint FK -> dim_customer.customer_key
+  +date_key: bigint FK -> dim_date.date_key
+  +total_price: float
+}
+
+dim_product ||--o{ dim_product_category_link
+dim_product_category ||--o{ dim_product_category_link
+dim_customer ||--o{ deal_fact
+dim_date ||--o{ deal_fact
+dim_product ||--o{ dim_deal_item
+deal_fact ||--o{ dim_deal_item
+
+@enduml
+
